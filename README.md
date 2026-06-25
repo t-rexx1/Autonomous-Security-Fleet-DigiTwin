@@ -10,6 +10,9 @@
 
 ## Results
 
+### Coverage Evolution
+![Coverage Evolution](https://raw.githubusercontent.com/t-rexx1/Autonomous-Security-Fleet-DigiTwin/main/results/animations/coverage_evolution.gif)
+
 ### Coverage Heatmap (t=600s)
 ![Coverage Heatmap](results/figures/coverage_heatmap_final.png)
 
