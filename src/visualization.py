@@ -2,6 +2,7 @@
 Visualization: heatmaps, convergence plots, route maps.
 """
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -163,3 +164,40 @@ def plot_coverage_over_time(coverage_history, disrupt_time=None, save_path=None)
     if save_path:
         plt.savefig(save_path, dpi=150, facecolor='#080B11', bbox_inches='tight')
     plt.close()
+def generate_animation(frames_data, buildings, save_path='results/animations/coverage_evolution.gif'):
+    """Generate animated GIF of coverage evolution."""
+    import matplotlib.animation as animation
+    
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6), facecolor='#080B11')
+    ax.set_facecolor('#080B11')
+    
+    # Buildings
+    for (bx, by, bw, bh) in buildings:
+        rect = patches.Rectangle((bx, by), bw, bh,
+                                  facecolor='#1a1f2e', edgecolor='#5E7187', lw=1)
+        ax.add_patch(rect)
+    
+    im = ax.imshow(frames_data[0], origin='lower', cmap=CMAP_COVERAGE,
+                   vmin=0, vmax=1, aspect='auto',
+                   extent=[0, CAMPUS_W, 0, CAMPUS_H])
+    
+    title = ax.set_title('', color='#CBD8E8', fontsize=14, fontfamily='monospace')
+    ax.set_xlabel('X (m)', color='#5E7187')
+    ax.set_ylabel('Y (m)', color='#5E7187')
+    ax.tick_params(colors='#5E7187')
+    
+    def update(frame_idx):
+        im.set_data(frames_data[frame_idx])
+        t = frame_idx * 10  # assuming we save every 10 steps
+        title.set_text(f'Coverage Evolution — t={t}s')
+        return [im, title]
+    
+    anim = animation.FuncAnimation(fig, update, frames=len(frames_data),
+                                    interval=100, blit=True)
+    
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    anim.save(save_path, writer='pillow', fps=10, dpi=100,
+              savefig_kwargs={'facecolor': '#080B11'})
+    plt.close()
+    print(f"[VIZ] Animation saved: {save_path}")
+    

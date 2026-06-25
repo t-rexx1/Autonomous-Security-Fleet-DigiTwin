@@ -46,10 +46,9 @@ def run():
     for i, r in enumerate(routes):
         print(f"  Unit {i+1}: {len(r)} nodes")
 
-    # ─── Phase 2: Forward Simulation ──────────────────────
+    # ─── Phase 2: Forward Simulation ──────────────────────────
     print(f"\n[SIM] Simulating {SIM_DURATION}s with disruption at t={DISRUPT_TIME}s...")
 
-    # Initialize fleet at charging pads
     start_positions = [pads[i % len(pads)] for i in range(N_UNITS)]
     fleet = Fleet(N_UNITS, start_positions)
     fleet.assign_routes(routes)
@@ -57,6 +56,7 @@ def run():
     coverage_grid = CoverageGrid()
     coverage_history = []
     battery_history = [[] for _ in range(N_UNITS)]
+    frames = []  # for animation
     disrupted = False
     disrupt_step = int(DISRUPT_TIME / SIM_DT)
 
@@ -69,14 +69,12 @@ def run():
             fleet.disable_unit(DISRUPT_UNIT)
             disrupted = True
 
-            # Re-optimize with reduced fleet
             active_units = sum(1 for u in fleet.units if u.active)
             print(f"  [GA] Re-optimizing for {active_units} units...")
             ga2 = GA(nodes, active_units, seed=SEED + 1)
             ga2.run(N_GEN_RECOVERY)
             new_routes = ga2.get_best_routes()
 
-            # Reassign to active units only
             route_idx = 0
             for unit in fleet.units:
                 if unit.active:
@@ -84,7 +82,6 @@ def run():
                     unit.route_idx = 0
                     route_idx += 1
 
-            # Append recovery fitness to history
             ga.fitness_history.extend(ga2.fitness_history)
 
         # Step fleet
@@ -100,6 +97,10 @@ def run():
         coverage_history.append(coverage_grid.get_coverage_pct())
         for i, unit in enumerate(fleet.units):
             battery_history[i].append(unit.battery)
+
+        # Capture frame every 10 steps
+        if step % 10 == 0:
+            frames.append(coverage_grid.grid.copy())
 
     final_coverage = coverage_history[-1]
     print(f"\n[RESULT] Final coverage: {final_coverage*100:.1f}%")
@@ -134,6 +135,9 @@ def run():
     print("\n" + "=" * 60)
     print("  DONE")
     print("=" * 60)
+    # Animation
+    from src.visualization import generate_animation
+    generate_animation(frames, buildings, save_path='results/animations/coverage_evolution.gif')
 
 
 if __name__ == '__main__':
