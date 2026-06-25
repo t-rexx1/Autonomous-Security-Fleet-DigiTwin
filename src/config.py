@@ -6,7 +6,7 @@ Author: Aaditya Shrivastava
 
 import numpy as np
 
-# Environment
+# ─── Environment ───────────────────────────────────────────
 CAMPUS_W = 800.0  # m
 CAMPUS_H = 500.0  # m
 N_PATROL_NODES = 27
@@ -29,23 +29,23 @@ CHARGING_PADS = np.array([
 
 # ─── Fleet / Robot Specs ───────────────────────────────────
 N_UNITS = 5
-V_MAX = 1.5           # m/s (~3.4 mph, K5 spec)
-E_MAX = 100.0         # % battery capacity
-E_DRAIN_MOVE = 1.5    # %/min while moving
-E_DRAIN_IDLE = 0.3    # %/min while idle
+V_MAX = 6.0            # m/s (~13 mph)
+E_MAX = 100.0
+E_DRAIN_MOVE = 0.8    # %/min while moving
+E_DRAIN_IDLE = 0.1    # %/min while idle
 E_CHARGE_RATE = 5.0   # %/min at pad
-E_THRESH = 22.0       # % --> divert to charger
-R_SENSE = 25.0        # m sensor/coverage radius
+E_THRESH = 22.0       # % → divert to charger
+R_SENSE = 60.0        # m sensor/coverage radius
 
 # ─── Coverage Grid ─────────────────────────────────────────
-GRID_RES = 8.0        # m per cell
-DECAY_RATE = 0.03     # freshness decay per second
-F_THRESH = 0.30       # below this = blind spot
-F_STAMP = 1.0         # freshness set when unit passes
+GRID_RES = 8.0
+DECAY_RATE = 0.003    # freshness decay per second
+F_THRESH = 0.25       # below this = blind spot
+F_STAMP = 1.0
 
 # ─── GA Parameters ─────────────────────────────────────────
-POP_SIZE = 64
-N_GENERATIONS = 200
+POP_SIZE = 80
+N_GENERATIONS = 300
 P_CROSSOVER = 0.85
 P_MUTATION = 0.15
 P_BREAK_MUTATE = 0.20
@@ -55,19 +55,19 @@ N_ELITE = 2
 # ─── Fitness Weights ──────────────────────────────────────
 W_MAKESPAN = 1.0
 W_TOTAL = 0.35
-W_BALANCE = 1.1
+W_BALANCE = 2.0       # high: forces even workload distribution
 W_ENERGY = 0.9
-W_EMPTY = 1200.0
+W_EMPTY = 2000.0      # very high: every unit must contribute
 
 # ─── Simulation ───────────────────────────────────────────
-SIM_DURATION = 600.0    # seconds to simulate per evaluation
-SIM_DT = 1.0           # timestep (s)
-D_MAX = 2600.0         # max route length on single charge (m)
+SIM_DURATION = 600.0
+SIM_DT = 1.0
+D_MAX = 5000.0
 
 # ─── Disruption ───────────────────────────────────────────
-DISRUPT_TIME = 300.0   # second at which a unit drops
-DISRUPT_UNIT = 2       # index of unit to drop
-N_GEN_RECOVERY = 50    # GA generations for re-optimization
+DISRUPT_TIME = 300.0
+DISRUPT_UNIT = 2
+N_GEN_RECOVERY = 80
 
 # ─── Random Seed ──────────────────────────────────────────
 SEED = 42
