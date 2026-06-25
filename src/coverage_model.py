@@ -1,58 +1,63 @@
 """
-Campus environment: patrol nodes, buildings, charging pads.
+Coverage freshness grid — tracks how recently each cell was patrolled.
 """
 
 import numpy as np
 from .config import *
 
 
-def point_in_building(x, y):
-    """Check if point is inside any building."""
-    for (bx, by, bw, bh) in BUILDINGS:
-        if bx <= x <= bx + bw and by <= y <= by + bh:
-            return True
-    return False
+class CoverageGrid:
+    """Spatial freshness grid for coverage tracking."""
 
+    def __init__(self):
+        self.cols = int(CAMPUS_W / GRID_RES)
+        self.rows = int(CAMPUS_H / GRID_RES)
+        self.grid = np.zeros((self.rows, self.cols))
+        self.building_mask = self._make_building_mask()
 
-def generate_patrol_nodes(seed=SEED):
-    """Generate patrol node positions on jittered grid, avoiding buildings."""
-    rng = np.random.default_rng(seed)
-    nodes = []
-    # Generate on a grid with jitter
-    cols = 6
-    rows = 5
-    dx = CAMPUS_W / (cols + 1)
-    dy = CAMPUS_H / (rows + 1)
+    def _make_building_mask(self):
+        """True where buildings are (non-patrollable)."""
+        mask = np.zeros((self.rows, self.cols), dtype=bool)
+        for (bx, by, bw, bh) in BUILDINGS:
+            c0 = int(bx / GRID_RES)
+            c1 = int((bx + bw) / GRID_RES)
+            r0 = int(by / GRID_RES)
+            r1 = int((by + bh) / GRID_RES)
+            mask[r0:r1, c0:c1] = True
+        return mask
 
-    for i in range(1, cols + 1):
-        for j in range(1, rows + 1):
-            x = dx * i + rng.uniform(-30, 30)
-            y = dy * j + rng.uniform(-30, 30)
-            x = np.clip(x, 20, CAMPUS_W - 20)
-            y = np.clip(y, 20, CAMPUS_H - 20)
-            if not point_in_building(x, y):
-                nodes.append([x, y])
-            if len(nodes) >= N_PATROL_NODES:
-                break
-        if len(nodes) >= N_PATROL_NODES:
-            break
+    def stamp(self, positions, radius=R_SENSE):
+        """Stamp freshness around unit positions."""
+        r_cells = int(radius / GRID_RES)
+        for pos in positions:
+            c = int(pos[0] / GRID_RES)
+            r = int(pos[1] / GRID_RES)
+            for dr in range(-r_cells, r_cells + 1):
+                for dc in range(-r_cells, r_cells + 1):
+                    rr, cc = r + dr, c + dc
+                    if 0 <= rr < self.rows and 0 <= cc < self.cols:
+                        if abs(dr) + abs(dc) <= r_cells:
+                            if not self.building_mask[rr, cc]:
+                                self.grid[rr, cc] = F_STAMP
 
-    # Fill remaining if needed
-    while len(nodes) < N_PATROL_NODES:
-        x = rng.uniform(50, CAMPUS_W - 50)
-        y = rng.uniform(50, CAMPUS_H - 50)
-        if not point_in_building(x, y):
-            nodes.append([x, y])
+    def decay(self, dt=SIM_DT):
+        """Decay freshness over time."""
+        self.grid -= DECAY_RATE * dt
+        self.grid = np.clip(self.grid, 0, 1)
 
-    return np.array(nodes[:N_PATROL_NODES])
+    def get_coverage_pct(self):
+        """Fraction of non-building cells above threshold."""
+        valid = ~self.building_mask
+        n_valid = np.sum(valid)
+        if n_valid == 0:
+            return 1.0
+        n_covered = np.sum(self.grid[valid] > F_THRESH)
+        return n_covered / n_valid
 
+    def get_blind_spot_pct(self):
+        """Fraction that are blind spots."""
+        return 1.0 - self.get_coverage_pct()
 
-def get_environment(seed=SEED):
-    """Return full environment dict."""
-    nodes = generate_patrol_nodes(seed)
-    return {
-        'nodes': nodes,
-        'buildings': BUILDINGS,
-        'pads': CHARGING_PADS,
-        'campus_size': (CAMPUS_W, CAMPUS_H),
-    }
+    def reset(self):
+        """Reset grid to zero."""
+        self.grid = np.zeros((self.rows, self.cols))
