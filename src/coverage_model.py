@@ -1,5 +1,5 @@
 """
-Coverage freshness grid — tracks how recently each cell was patrolled.
+Coverage freshness grid — tracks how recently each cell was patrolled..
 """
 
 import numpy as np
